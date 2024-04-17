@@ -7,6 +7,10 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include "http_request.h"
+#include "http_response.h"
+
+HttpResponse handleRequest(const HttpRequest &request);
 
 int main(int argc, char **argv)
 {
@@ -42,20 +46,41 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  struct sockaddr_in client_addr;
-  int client_addr_len = sizeof(client_addr);
+  while (true)
+  {
+    struct sockaddr_in client_addr;
+    int client_addr_len = sizeof(client_addr);
 
-  std::cout << "Waiting for a client to connect...\n";
+    std::cout << "Waiting for a client to connect...\n";
 
-  int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, (socklen_t *)&client_addr_len);
-  std::cout << "Client connected\n";
+    int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, (socklen_t *)&client_addr_len);
+    std::cout << "Client connected\n";
 
-  char buffer[1024];
-  ssize_t read_length = read(client_fd, &buffer, sizeof(buffer) - 1);
-  char response[] = "HTTP/1.1 200 OK\r\n\r\n";
-  send(client_fd, &response, strlen(response), 0);
+    char buffer[1024];
+    ssize_t read_length = read(client_fd, &buffer, sizeof(buffer) - 1);
+    std::string requestString = std::string(buffer);
+
+    auto request = HttpRequest::fromString(requestString);
+    auto response = handleRequest(request).asString();
+
+    send(client_fd, response.c_str(), response.length(), 0);
+
+    close(client_fd);
+  }
 
   close(server_fd);
 
   return 0;
+}
+
+HttpResponse handleRequest(const HttpRequest &request)
+{
+  if (request.path().compare("/") == 0)
+  {
+    return OK();
+  }
+  else
+  {
+    return NotFound();
+  }
 }

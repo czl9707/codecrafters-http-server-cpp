@@ -29,5 +29,5 @@ public:
     HttpRequest &withBody(const std::string &body);
     HttpRequest &withBody(const std::string &&body);
 
-    static HttpRequest fromString(const std::string &s);
+    static HttpRequest *fromString(const std::string &s);
 };

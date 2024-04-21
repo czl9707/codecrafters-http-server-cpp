@@ -17,7 +17,7 @@ HttpRequest::HttpRequest(const std::string &method,
       _body(""),
       _httpVersion(httpVersion)
 {
-    this->_pHeaders = new std::unordered_map<std::string, std::string>;
+    this->_pHeaders = new std::unordered_map<std::string, std::string>();
 }
 
 HttpRequest::~HttpRequest()
@@ -68,7 +68,7 @@ HttpRequest &HttpRequest::withBody(const std::string &&body)
     return *this;
 }
 
-HttpRequest HttpRequest::fromString(const std::string &s)
+HttpRequest *HttpRequest::fromString(const std::string &s)
 {
     std::vector<std::string> lines;
     split(s, CRLF, lines);
@@ -78,14 +78,14 @@ HttpRequest HttpRequest::fromString(const std::string &s)
     split(*lineItr, " ", requestTokens);
     lineItr++;
 
-    HttpRequest request(
+    HttpRequest *request = new HttpRequest(
         requestTokens[0], requestTokens[1], requestTokens[2]);
 
     while (*lineItr != "")
     {
         std::vector<std::string> headerTokens;
         split(*lineItr, ": ", headerTokens);
-        request.withHeader(headerTokens[0], headerTokens[1]);
+        request->withHeader(headerTokens[0], headerTokens[1]);
         lineItr++;
     }
 
@@ -97,7 +97,7 @@ HttpRequest HttpRequest::fromString(const std::string &s)
 
         lineItr++;
     }
-    request.withBody(ss.str());
+    request->withBody(ss.str());
 
     return request;
 }

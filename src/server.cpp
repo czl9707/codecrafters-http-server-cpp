@@ -10,7 +10,7 @@
 #include "http_request.h"
 #include "http_response.h"
 
-HttpResponse handleRequest(const HttpRequest &request);
+HttpResponse *handleRequest(const HttpRequest *request);
 
 int main(int argc, char **argv)
 {
@@ -60,11 +60,13 @@ int main(int argc, char **argv)
     ssize_t read_length = read(client_fd, &buffer, sizeof(buffer) - 1);
     std::string requestString = std::string(buffer);
 
-    auto request = HttpRequest::fromString(requestString);
-    auto response = handleRequest(request).asString();
+    HttpRequest *request = HttpRequest::fromString(requestString);
+    HttpResponse *response = handleRequest(request);
+    std::string responseStr = response->asString();
 
-    send(client_fd, response.c_str(), response.length(), 0);
+    send(client_fd, responseStr.c_str(), responseStr.length(), 0);
 
+    delete request, response;
     close(client_fd);
   }
 
@@ -73,21 +75,25 @@ int main(int argc, char **argv)
   return 0;
 }
 
-HttpResponse handleRequest(const HttpRequest &request)
+HttpResponse *handleRequest(const HttpRequest *request)
 {
-  if (request.path().compare("/") == 0)
+  HttpResponse response;
+  if (request->path().compare("/") == 0)
   {
-    return OK();
+    return new OK();
   }
-  else if (request.path().substr(0, 6).compare("/echo/") == 0)
+  else if (request->path().substr(0, 6).compare("/echo/") == 0)
   {
-    HttpResponse response = OK();
-    std::string body = request.path().substr(6, request.path().length() - 6);
-    response.withBody(body);
+    HttpResponse *response = new OK();
+    std::string body = request->path().substr(6, request->path().length() - 6);
+    response->withBody(body);
+    response->withHeader("Content-Type", "text/plain");
+    response->withHeader("Content-Length", std::to_string(body.length()));
+
     return response;
   }
   else
   {
-    return NotFound();
+    return new NotFound();
   }
 }

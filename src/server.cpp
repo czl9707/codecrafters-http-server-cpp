@@ -79,6 +79,13 @@ HttpResponse handleRequest(const HttpRequest &request)
   {
     return OK();
   }
+  else if (request.path().substr(0, 5).compare("/echo/"))
+  {
+    HttpResponse response = OK();
+    std::string body = request.path().substr(6, request.path().length() - 6);
+    response.withBody(body);
+    return response;
+  }
   else
   {
     return NotFound();

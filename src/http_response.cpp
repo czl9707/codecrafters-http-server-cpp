@@ -48,7 +48,8 @@ std::string HttpResponse::asString() const
     std::stringstream sstream;
     sstream << "HTTP/" << this->httpVersion() << " "
             << this->returnCode() << " "
-            << this->returnStatus() << CRLF << CRLF;
+            << this->returnStatus() << CRLF << CRLF
+            << this->body() << CRLF;
 
     return sstream.str();
 }

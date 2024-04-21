@@ -79,7 +79,7 @@ std::string HttpResponse::asString() const
     std::stringstream sstream;
     sstream << "HTTP/" << this->httpVersion() << " "
             << this->returnCode() << " "
-            << this->returnStatus();
+            << this->returnStatus() << CRLF;
     for (const auto pair : this->headers())
     {
         sstream << pair.first << ": " << pair.second << CRLF;

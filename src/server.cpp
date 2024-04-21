@@ -64,6 +64,7 @@ int main(int argc, char **argv)
     HttpResponse *response = handleRequest(request);
     std::string responseStr = response->asString();
 
+    std::cout << responseStr << std::endl;
     send(client_fd, responseStr.c_str(), responseStr.length(), 0);
 
     delete request, response;

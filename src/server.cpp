@@ -93,6 +93,16 @@ HttpResponse *handleRequest(const HttpRequest *request)
 
     return response;
   }
+  else if (request->path().substr(0, 11).compare("/user-agent") == 0)
+  {
+    HttpResponse *response = new OK();
+    std::string body = request->header("User-Agent");
+    response->withBody(body);
+    response->withHeader("Content-Type", "text/plain");
+    response->withHeader("Content-Length", std::to_string(body.length()));
+
+    return response;
+  }
   else
   {
     return new NotFound();

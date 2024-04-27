@@ -2,6 +2,9 @@
 #include <cstdlib>
 #include <string>
 #include <cstring>
+#include <thread>
+#include <vector>
+#include <algorithm>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -10,10 +13,11 @@
 #include "http_request.h"
 #include "http_response.h"
 
-HttpResponse *handleRequest(const HttpRequest *request);
+void handleRequest(const int client_fd);
 
 int main(int argc, char **argv)
 {
+  std::vector<std::thread> clients;
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0)
   {
@@ -56,19 +60,15 @@ int main(int argc, char **argv)
     int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, (socklen_t *)&client_addr_len);
     std::cout << "Client connected\n";
 
-    char buffer[1024];
-    ssize_t read_length = read(client_fd, &buffer, sizeof(buffer) - 1);
-    std::string requestString = std::string(buffer);
+    clients.emplace_back(handleRequest, client_fd);
 
-    HttpRequest *request = HttpRequest::fromString(requestString);
-    HttpResponse *response = handleRequest(request);
-    std::string responseStr = response->asString();
-
-    std::cout << responseStr << std::endl;
-    send(client_fd, responseStr.c_str(), responseStr.length(), 0);
-
-    delete request, response;
-    close(client_fd);
+    std::remove_if(
+        clients.begin(),
+        clients.end(),
+        [](const std::thread &t)
+        {
+          return t.joinable();
+        });
   }
 
   close(server_fd);
@@ -76,35 +76,43 @@ int main(int argc, char **argv)
   return 0;
 }
 
-HttpResponse *handleRequest(const HttpRequest *request)
+void handleRequest(const int client_fd)
 {
-  HttpResponse response;
+  char buffer[1024];
+  ssize_t read_length = read(client_fd, &buffer, sizeof(buffer) - 1);
+  std::string requestString = std::string(buffer);
+
+  HttpRequest *request = HttpRequest::fromString(requestString);
+  HttpResponse *response;
   if (request->path().compare("/") == 0)
   {
-    return new OK();
+    response = new OK();
   }
   else if (request->path().substr(0, 6).compare("/echo/") == 0)
   {
-    HttpResponse *response = new OK();
+    response = new OK();
     std::string body = request->path().substr(6, request->path().length() - 6);
     response->withBody(body);
     response->withHeader("Content-Type", "text/plain");
     response->withHeader("Content-Length", std::to_string(body.length()));
-
-    return response;
   }
   else if (request->path().substr(0, 11).compare("/user-agent") == 0)
   {
-    HttpResponse *response = new OK();
+    response = new OK();
     std::string body = request->header("User-Agent");
     response->withBody(body);
     response->withHeader("Content-Type", "text/plain");
     response->withHeader("Content-Length", std::to_string(body.length()));
-
-    return response;
   }
   else
   {
-    return new NotFound();
+    response = new NotFound();
   }
+
+  std::string responseStr = response->asString();
+  // std::cout << responseStr << std::endl;
+  send(client_fd, responseStr.c_str(), responseStr.length(), 0);
+
+  delete request, response;
+  close(client_fd);
 }

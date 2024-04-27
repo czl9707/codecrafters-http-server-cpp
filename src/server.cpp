@@ -2,6 +2,8 @@
 #include <cstdlib>
 #include <string>
 #include <cstring>
+#include <fstream>
+#include <sstream>
 #include <thread>
 #include <vector>
 #include <algorithm>
@@ -13,10 +15,16 @@
 #include "http_request.h"
 #include "http_response.h"
 
+std::string directory;
+
 void handleRequest(const int client_fd);
+void parseArgs(const int argc, char **argv, std::string &directory);
+HttpResponse *handleFileRequest(const std::string &file_name);
 
 int main(int argc, char **argv)
 {
+  parseArgs(argc, argv, directory);
+
   std::vector<std::thread> clients;
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0)
@@ -76,19 +84,29 @@ int main(int argc, char **argv)
   return 0;
 }
 
+void parseArgs(const int argc, char **argv, std::string &directory)
+{
+  if (argc < 3)
+    return;
+  if (std::string(argv[1]).compare("--directory") != 0)
+    return;
+
+  directory = std::string(argv[2]);
+}
+
 void handleRequest(const int client_fd)
 {
   char buffer[1024];
   ssize_t read_length = read(client_fd, &buffer, sizeof(buffer) - 1);
   std::string requestString = std::string(buffer);
-
   HttpRequest *request = HttpRequest::fromString(requestString);
   HttpResponse *response;
+
   if (request->path().compare("/") == 0)
   {
     response = new OK();
   }
-  else if (request->path().substr(0, 6).compare("/echo/") == 0)
+  else if (request->path().find("/echo/") == 0)
   {
     response = new OK();
     std::string body = request->path().substr(6, request->path().length() - 6);
@@ -96,13 +114,17 @@ void handleRequest(const int client_fd)
     response->withHeader("Content-Type", "text/plain");
     response->withHeader("Content-Length", std::to_string(body.length()));
   }
-  else if (request->path().substr(0, 11).compare("/user-agent") == 0)
+  else if (request->path().find("/user-agent") == 0)
   {
     response = new OK();
     std::string body = request->header("User-Agent");
     response->withBody(body);
     response->withHeader("Content-Type", "text/plain");
     response->withHeader("Content-Length", std::to_string(body.length()));
+  }
+  else if (request->path().find("/files/") == 0)
+  {
+    response = handleFileRequest(request->path().substr(7));
   }
   else
   {
@@ -115,4 +137,25 @@ void handleRequest(const int client_fd)
 
   delete request, response;
   close(client_fd);
+}
+
+HttpResponse *handleFileRequest(const std::string &file_name)
+{
+  if (directory.empty())
+    return new NotFound();
+
+  std::ifstream fs(directory.append("/").append(file_name));
+  if (!fs.is_open())
+    return new NotFound();
+
+  std::stringstream buffer;
+  buffer << fs.rdbuf();
+  fs.close();
+
+  HttpResponse *response = new OK();
+  response->withBody(buffer.str());
+  response->withHeader("Content-Type", "application/octet-stream");
+  response->withHeader("Content-Length", std::to_string(response->body().length()));
+
+  return response;
 }

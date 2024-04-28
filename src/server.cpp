@@ -92,7 +92,12 @@ void parseArgs(const int argc, char **argv, std::string &directory)
   if (std::string(argv[1]).compare("--directory") != 0)
     return;
 
-  directory = std::string(argv[2]);
+  std::string temp = std::string(argv[2]);
+  if (temp[temp.length() - 1] != '/')
+  {
+    temp += '/';
+  }
+  directory = temp;
 }
 
 void handleRequest(const int client_fd)
@@ -152,7 +157,7 @@ HttpResponse *handleGetFileRequest(const std::string &file_name)
   if (directory.empty())
     return new NotFound();
 
-  std::ifstream fs(directory.append("/").append(file_name));
+  std::ifstream fs(directory.append(file_name));
   if (!fs.is_open())
     return new NotFound();
 
@@ -173,7 +178,8 @@ HttpResponse *handlePostFileRequest(const std::string &file_name, const std::str
   if (directory.empty())
     return new NotFound();
 
-  std::ofstream fs(directory.append("/").append(file_name));
+  // std::cout << directory.append(file_name) << std::endl;
+  std::ofstream fs(directory.append(file_name));
   if (!fs.is_open())
     return new NotFound();
 

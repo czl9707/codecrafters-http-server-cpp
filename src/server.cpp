@@ -157,7 +157,7 @@ HttpResponse *handleGetFileRequest(const std::string &file_name)
   if (directory.empty())
     return new NotFound();
 
-  std::ifstream fs(directory.append(file_name));
+  std::ifstream fs(directory + file_name);
   if (!fs.is_open())
     return new NotFound();
 
@@ -178,8 +178,9 @@ HttpResponse *handlePostFileRequest(const std::string &file_name, const std::str
   if (directory.empty())
     return new NotFound();
 
-  // std::cout << directory.append(file_name) << std::endl;
-  std::ofstream fs(directory.append(file_name));
+  std::ofstream fs(directory + file_name);
+  // std::cout << directory + file_name << std::endl;
+
   if (!fs.is_open())
     return new NotFound();
 

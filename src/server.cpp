@@ -19,7 +19,8 @@ std::string directory;
 
 void handleRequest(const int client_fd);
 void parseArgs(const int argc, char **argv, std::string &directory);
-HttpResponse *handleFileRequest(const std::string &file_name);
+HttpResponse *handleGetFileRequest(const std::string &file_name);
+HttpResponse *handlePostFileRequest(const std::string &file_name, const std::string &content);
 
 int main(int argc, char **argv)
 {
@@ -124,7 +125,14 @@ void handleRequest(const int client_fd)
   }
   else if (request->path().find("/files/") == 0)
   {
-    response = handleFileRequest(request->path().substr(7));
+    if (request->method().compare("GET") == 0)
+    {
+      response = handleGetFileRequest(request->path().substr(7));
+    }
+    else if (request->method().compare("POST") == 0)
+    {
+      response = handlePostFileRequest(request->path().substr(7), request->body());
+    }
   }
   else
   {
@@ -139,7 +147,7 @@ void handleRequest(const int client_fd)
   close(client_fd);
 }
 
-HttpResponse *handleFileRequest(const std::string &file_name)
+HttpResponse *handleGetFileRequest(const std::string &file_name)
 {
   if (directory.empty())
     return new NotFound();
@@ -156,6 +164,23 @@ HttpResponse *handleFileRequest(const std::string &file_name)
   response->withBody(buffer.str());
   response->withHeader("Content-Type", "application/octet-stream");
   response->withHeader("Content-Length", std::to_string(response->body().length()));
+
+  return response;
+}
+
+HttpResponse *handlePostFileRequest(const std::string &file_name, const std::string &content)
+{
+  if (directory.empty())
+    return new NotFound();
+
+  std::ofstream fs(directory.append("/").append(file_name));
+  if (!fs.is_open())
+    return new NotFound();
+
+  fs << content;
+  fs.close();
+
+  HttpResponse *response = new Created();
 
   return response;
 }

@@ -102,4 +102,7 @@ OK::OK(OK &okResponse) : HttpResponse(okResponse){};
 NotFound::NotFound(const std::string &httpVersion) : HttpResponse(httpVersion, 404, "Not Found"){};
 NotFound::NotFound(NotFound &nfResponse) : HttpResponse(nfResponse){};
 
+Created::Created(const std::string &httpVersion) : HttpResponse(httpVersion, 201, "Created"){};
+Created::Created(NotFound &cResponse) : HttpResponse(cResponse){};
+
 #endif

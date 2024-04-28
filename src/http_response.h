@@ -47,3 +47,10 @@ public:
     NotFound(const std::string &httpVersion = "1.1");
     NotFound(NotFound &nfResponse);
 };
+
+class Created : public HttpResponse
+{
+public:
+    Created(const std::string &httpVersion = "1.1");
+    Created(NotFound &cResponse);
+};

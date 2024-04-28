@@ -93,9 +93,13 @@ HttpRequest *HttpRequest::fromString(const std::string &s)
     std::stringstream ss;
     while (lineItr != lines.cend())
     {
-        ss << *lineItr << CRLF;
+        ss << *lineItr;
 
         lineItr++;
+        if (lineItr != lines.cend())
+        {
+            ss << CRLF;
+        }
     }
     request->withBody(ss.str());
 
